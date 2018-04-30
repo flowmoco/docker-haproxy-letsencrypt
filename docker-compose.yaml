@@ -1,32 +1,37 @@
-version: "2"
+version: "3.6"
 services:
-    https:
-        # XXX Use image: tecnativa/haproxy-letsencrypt instead
-        build: .
-        environment:
-            # XXX: Fill this with your real data
-            DOMAINS: example.com,example.org
-            EMAIL: admin@example.com
-            # XXX: Use "false" to get real certs!
-            STAGING: "true"
-            # XXX: Use "true" when cert fetching should fail (i.e. in dev env)
-            CONTINUE_ON_CERTONLY_FAILURE: "false"
-        links:
-            - www
-        ports:
-            # It's important to have real ports handled by this container
-            - "80:80"
-            - "443:443"
-        restart: unless-stopped
-        volumes:
-            # This keeps certs and cronstamps across reloads
-            - letsencrypt:/etc/letsencrypt
-            - cronstamps:/var/spool/cron/cronstamps
-
-    # XXX: Put your web app here; for testing, this one is very useful
-    www:
-        image: stackatoapps/phpinfo
-
-volumes:
-    letsencrypt:
-    cronstamps:
+  haproxy:
+    # XXX Use image: tecnativa/haproxy-letsencrypt instead
+    image: flowmoco/haproxy-letsencrypt:latest
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 20s
+    ports:
+      - target: 80
+        published: 90
+        mode: host
+      - target: 443
+        published: 91
+        mode: host
+    environment:
+      # XXX: Fill this with your real data
+      DOMAINS: example.com,example.org
+      EMAIL: admin@example.com
+      # XXX: Use "false" to get real certs!
+      STAGING: "true"
+      # XXX: Use "true" when cert fetching should fail (i.e. in dev env)
+      CONTINUE_ON_CERTONLY_FAILURE: "false"
+    volumes:
+      # This keeps certs and cronstamps across reloads
+      - letsencrypt:/etc/letsencrypt
+      - cronstamps:/var/spool/cron/cronstamps
+    networks:
+      hostnet: {}
+networks:
+  hostnet:
+    external: true
+    name: host
